@@ -6,11 +6,11 @@ pipeline {
         DOCKER_IMAGE = 'monutilisateur/spring-boot-app'
         DOCKER_TAG = 'latest'
         MAVEN_VERSION = '3.8.1'
-        DOCKER_CREDENTIALS = 'docker-credentials' 
+        DOCKER_CREDENTIALS = 'docker-credentials'
     }
 
     tools {
-        maven "${MAVEN_VERSION}"  // Ensure this matches the installation name in Jenkins
+        maven "${MAVEN_VERSION}"
     }
 
     stages {
@@ -23,9 +23,7 @@ pipeline {
             steps {
                 script {
                     echo 'Building Spring Boot application...'
-                    // Use mvnw if available, or system-installed Maven
-                    sh './mvnw clean package -DskipTests'  // This assumes you're using the Maven Wrapper
-                    // sh 'mvn clean package -DskipTests'  // Use this if you're not using the wrapper
+                    sh './mvnw clean package -DskipTests'
                 }
             }
         }
@@ -53,7 +51,9 @@ pipeline {
     post {
         always {
             echo 'Cleaning up workspace...'
-            cleanWs()
+            node {  // Add 'node' block here
+                cleanWs()
+            }
         }
         success {
             echo 'Pipeline executed successfully.'
