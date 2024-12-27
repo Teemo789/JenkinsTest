@@ -51,9 +51,7 @@ pipeline {
     post {
         always {
             echo 'Cleaning up workspace...'
-            node('your-agent-label') {  // Specify the label of the agent you want to run this block on
-                cleanWs()
-            }
+            cleanWs()  // This will clean the workspace
         }
         success {
             echo 'Pipeline executed successfully.'
