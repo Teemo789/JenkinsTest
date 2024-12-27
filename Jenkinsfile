@@ -51,7 +51,9 @@ pipeline {
     post {
         always {
             echo 'Cleaning up workspace...'
-            cleanWs()  // No need for 'node' block
+            node {
+                cleanWs()
+            }
         }
         success {
             echo 'Pipeline executed successfully.'
