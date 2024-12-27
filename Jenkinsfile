@@ -2,7 +2,7 @@ pipeline {
     agent any
     environment {
         DOCKER_REGISTRY = 'docker.io'
-        DOCKER_IMAGE = 'Teemo/spring-boot-app'
+        DOCKER_IMAGE = 'teemo/spring-boot-app'
         DOCKER_TAG = 'latest'
         MAVEN_VERSION = 'Maven'
         DOCKER_CREDENTIALS = 'docker-credentials'
