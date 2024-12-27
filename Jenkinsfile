@@ -10,7 +10,7 @@ pipeline {
     }
 
     tools {
-        maven "${MAVEN_VERSION}"
+        maven "${MAVEN_VERSION}"  // Ensure this matches the installation name in Jenkins
     }
 
     stages {
@@ -23,7 +23,9 @@ pipeline {
             steps {
                 script {
                     echo 'Building Spring Boot application...'
-                    sh './mvnw clean package -DskipTests'
+                    // Use mvnw if available, or system-installed Maven
+                    sh './mvnw clean package -DskipTests'  // This assumes you're using the Maven Wrapper
+                    // sh 'mvn clean package -DskipTests'  // Use this if you're not using the wrapper
                 }
             }
         }
