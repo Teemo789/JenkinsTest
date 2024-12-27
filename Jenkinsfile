@@ -1,18 +1,15 @@
 pipeline {
     agent any
-
     environment {
         DOCKER_REGISTRY = 'docker.io'
         DOCKER_IMAGE = 'Teemo/spring-boot-app'
         DOCKER_TAG = 'latest'
-        MAVEN_VERSION = 'Maven' 
+        MAVEN_VERSION = '3.8.1'
         DOCKER_CREDENTIALS = 'docker-credentials'
     }
-
     tools {
         maven "${MAVEN_VERSION}"
     }
-
     stages {
         stage('Checkout') {
             steps {
@@ -23,7 +20,7 @@ pipeline {
             steps {
                 script {
                     echo 'Building Spring Boot application...'
-                    sh './mvnw clean package -DskipTests'
+                    bat './mvnw clean package -DskipTests'
                 }
             }
         }
@@ -31,7 +28,7 @@ pipeline {
             steps {
                 script {
                     echo 'Building Docker image...'
-                    sh "docker build -t ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG} ."
+                    bat "docker build -t ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG} ."
                 }
             }
         }
@@ -40,14 +37,13 @@ pipeline {
                 script {
                     echo 'Pushing Docker image to registry...'
                     withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        sh "docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD} ${DOCKER_REGISTRY}"
-                        sh "docker push ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}"
+                        bat "docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD} ${DOCKER_REGISTRY}"
+                        bat "docker push ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}"
                     }
                 }
             }
         }
     }
-
     post {
         always {
             script {
