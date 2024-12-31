@@ -4,7 +4,7 @@ pipeline {
         DOCKER_CREDENTIALS_ID = 'docker-credentials'
         DOCKER_REPO = 'teemo/spring-boot-app'
         DOCKER_TAG = 'latest'
-        REMOTE_SERVER = 'remote-user@remote-server-ip'
+        REMOTE_SERVER = 'teemocloned@192.168.230.168'
         REMOTE_SERVER_SSH = 'remote-server-ssh'
         SONARQUBE_ENV_NAME = 'SonarQube'
         SONARQUBE_PROJECT_KEY = 'teemo_spring_project'
