@@ -1,15 +1,16 @@
 pipeline {
     agent any
     environment {
-        DOCKER_REGISTRY = 'docker.io'
-        DOCKER_IMAGE = 'teemo/spring-boot-app'
+        DOCKER_CREDENTIALS_ID = 'docker-credentials'
+        DOCKER_REPO = 'teemo/spring-boot-app'
         DOCKER_TAG = 'latest'
-        MAVEN_VERSION = 'Maven'
-        DOCKER_CREDENTIALS = 'docker-credentials'
-        SONARQUBE_SERVER = 'SonarQube'
+        REMOTE_SERVER = 'remote-user@remote-server-ip'
+        REMOTE_SERVER_SSH = 'remote-server-ssh'
+        SONARQUBE_ENV_NAME = 'SonarQube'
+        SONARQUBE_PROJECT_KEY = 'teemo_spring_project'
     }
     tools {
-        maven "${MAVEN_VERSION}"
+        maven 'Maven'
     }
     stages {
         stage('Checkout') {
@@ -17,66 +18,74 @@ pipeline {
                 checkout scm
             }
         }
-        stage('Maven Compile') {
+        stage('Build') {
             steps {
-                script {
-                    echo 'Compiling project with Maven...'
-                    bat './mvnw clean compile'
-                }
+                sh './mvnw clean install'
+            }
+        }
+        stage('Test') {
+            steps {
+                sh './mvnw test'
             }
         }
         stage('SonarQube Analysis') {
             steps {
+                withSonarQubeEnv(SONARQUBE_ENV_NAME) {
+                    sh "./mvnw sonar:sonar -Dsonar.projectKey=${SONARQUBE_PROJECT_KEY}"
+                }
+            }
+        }
+        stage('Package') {
+            steps {
+                sh './mvnw package'
+            }
+        }
+        stage('Verify WAR File') {
+            steps {
                 script {
-                    echo 'Running SonarQube analysis...'
-                    withSonarQubeEnv("${SONARQUBE_SERVER}") {
-                        bat './mvnw sonar:sonar'
+                    if (!fileExists('target/spring-boot-app-0.0.1-SNAPSHOT.war')) {
+                        error 'WAR file not found. Build failed.'
                     }
                 }
             }
         }
-        stage('Build') {
+        stage('Building Docker Image') {
             steps {
                 script {
-                    echo 'Building Spring Boot application...'
-                    bat './mvnw clean package -DskipTests'
+                    appImage = docker.build("${DOCKER_REPO}:${DOCKER_TAG}")
                 }
             }
         }
-        stage('Build Docker Image') {
+        stage('Pushing Image to Docker Hub') {
             steps {
                 script {
-                    echo 'Building Docker image...'
-                    bat "docker build -t ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG} ."
-                }
-            }
-        }
-        stage('Push Docker Image') {
-            steps {
-                script {
-                    echo 'Pushing Docker image to registry...'
-                    withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        bat "docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD} ${DOCKER_REGISTRY}"
-                        bat "docker push ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}"
+                    docker.withRegistry('', DOCKER_CREDENTIALS_ID) {
+                        appImage.push()
                     }
+                }
+            }
+        }
+        stage('Deploy to Remote Server') {
+            steps {
+                sshagent([REMOTE_SERVER_SSH]) {
+                    sh """
+                    ssh -o StrictHostKeyChecking=no $REMOTE_SERVER "
+                    docker stop $(docker ps -q --filter ancestor=${DOCKER_REPO}:${DOCKER_TAG}) || true &&
+                    docker rm $(docker ps -q --filter ancestor=${DOCKER_REPO}:${DOCKER_TAG}) || true &&
+                    docker pull ${DOCKER_REPO}:${DOCKER_TAG} &&
+                    docker run -d -p 8080:8080 ${DOCKER_REPO}:${DOCKER_TAG}
+                    "
+                    """
                 }
             }
         }
     }
     post {
-        always {
-            script {
-                node {
-                    echo 'Cleaning up workspace...'
-                    cleanWs()
-                }
-            }
-        }
         success {
-            echo 'Pipeline executed successfully.'
+            echo 'Pipeline completed successfully!'
         }
         failure {
-            echo 'Pipeline failed.'
+            echo 'Pipeline failed. Check the logs for details.'
         }
     }
 }
