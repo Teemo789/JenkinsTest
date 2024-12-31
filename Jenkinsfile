@@ -6,6 +6,7 @@ pipeline {
         DOCKER_TAG = 'latest'
         MAVEN_VERSION = 'Maven'
         DOCKER_CREDENTIALS = 'docker-credentials'
+        SONARQUBE_SERVER = 'SonarQube'
     }
     tools {
         maven "${MAVEN_VERSION}"
@@ -14,6 +15,24 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
+            }
+        }
+        stage('Maven Compile') {
+            steps {
+                script {
+                    echo 'Compiling project with Maven...'
+                    bat './mvnw clean compile'
+                }
+            }
+        }
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    echo 'Running SonarQube analysis...'
+                    withSonarQubeEnv("${SONARQUBE_SERVER}") {
+                        bat './mvnw sonar:sonar'
+                    }
+                }
             }
         }
         stage('Build') {
@@ -36,7 +55,7 @@ pipeline {
             steps {
                 script {
                     echo 'Pushing Docker image to registry...'
-                    withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS, usernameVariable: 'teemo156', passwordVariable: '123123gg**')]) {
+                    withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                         bat "docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD} ${DOCKER_REGISTRY}"
                         bat "docker push ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}"
                     }
